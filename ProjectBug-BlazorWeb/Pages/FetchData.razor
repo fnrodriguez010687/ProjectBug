@@ -1,0 +1,159 @@
+﻿@page "/fetchdata"
+
+@using ProjectBug_BlazorWeb.Model;
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ILogger<BugOutputList> Logger
+<PageTitle>Dashboard</PageTitle>
+
+<h1>Dashboard</h1>
+
+<p>Filtering Bugs by user,project and date.</p>
+
+<button class="btn btn-outline-primary" @onclick="NavigateToNewBug">
+  Add new bug
+</button>
+
+<EditForm class="d-flex justify-content-between" Model="@_filter" OnSubmit="@Submit">
+ 
+<div class="form-field">
+  <label>Project:</label>
+  <div>
+      <InputSelect @bind-Value="_filter!.project_id">
+      <option value="">Select Project ...</option>
+      <option value="1">Project1</option>
+      <option value="2">Project2</option>
+      <option value="3">Project3</option>
+      <option value="4">Project4</option>
+      <option value="5">Project5</option>
+    </InputSelect>
+  </div>
+</div>
+
+<div class="form-field">
+  <label>User:</label>
+  
+  <div>
+      <InputSelect @bind-Value="_filter!.user_id">
+      <option value="">Select User ...</option>
+        <option value="1">AAA	New A</option>
+        <option value="2">BBB	New B</option>
+        <option value="3">CCC	New C</option>
+        <option value="4">DDD	New D</option>
+        <option value="5">EEE	New E</option>
+    </InputSelect>
+  </div>
+</div>
+
+<div class="form-field">
+  <label>Start Date:</label>
+  <div>
+      <InputDate @bind-Value="_filter!.start_date" />
+  </div>
+</div>
+  <div class="form-field">
+    <label>End Date:</label>
+    <div>
+      <InputDate @bind-Value="_filter!.end_date" />
+    </div>
+  </div>
+  <button class="btn btn-info" type="submit">
+  Filter
+</button>
+</EditForm>
+
+@if (bugList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+  @if (bugList.Bugs == null || bugList.Bugs.Count == 0 )
+  {
+    <p><em> Not Found... </em></p>
+  }
+  else{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Project</th>
+                <th>Username</th>
+                <th>CreatedAt</th>
+            </tr>
+        </thead>
+        <tbody>
+      @foreach (var bug in bugList.Bugs)
+            {
+                <tr>
+                    <td>@bug.Description</td>
+                    <td>@bug.Project</td>
+                    <td>@bug.Username</td>
+                    <td>@bug.CreationDate.ToShortDateString()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+  }
+}
+
+@code {
+  private const string url = "http://localhost:5185/";
+  private BugOutputList? bugList;
+  private BugFilter? _filter;
+  private void NavigateToNewBug()
+  {
+    NavManager.NavigateTo("newbug");
+  }
+  protected override async Task OnInitializedAsync()
+  {
+    bugList = new BugOutputList();
+    _filter ??= new BugFilter() { project_id=1};
+    bugList = await Http.GetFromJsonAsync<BugOutputList>(url + "bugs?project_id=1");
+  }
+  private async Task Submit()
+  {
+    bugList = new BugOutputList();
+    string urlFilter = "";
+    string separator = "";
+    if (_filter.project_id is not null) {
+      urlFilter = urlFilter + "project_id=" + _filter.project_id;
+      separator = "&";
+    }
+    if (_filter.user_id is not null)
+    {
+      urlFilter = urlFilter + "" + separator + "user_id=" + _filter.user_id;
+      separator = "&";
+    }
+    if (_filter.start_date is not null)
+    {
+      urlFilter = urlFilter + "" + separator + "start_date=" + _filter.start_date;
+      separator = "&";
+    }
+    if (_filter.end_date is not null)
+    {
+      urlFilter = urlFilter +""+separator+"end_date=" + _filter.end_date;
+    }
+    try
+    {
+      var response = await Http.GetAsync(url + $"bugs?{urlFilter}");
+      if (response.IsSuccessStatusCode)
+      {
+        bugList = await response.Content.ReadFromJsonAsync<BugOutputList>();
+      }
+      else
+      {
+        bugList = new BugOutputList()
+        {
+        Bugs = new List<BugOutput>()  
+        };
+      }
+    }
+    catch (Exception ex)
+    {
+      Logger.LogInformation(ex, "Failed to created a bug {_filter}", _filter);
+    }
+    
+  }
+
+}

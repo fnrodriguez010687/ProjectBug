@@ -1,0 +1,95 @@
+﻿@page "/newbug"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@using Microsoft.Extensions.Logging
+@using ProjectBug_BlazorWeb.Model;
+@inject ILogger<int> Logger
+
+<PageTitle>New Bug</PageTitle>
+
+<h1>New Bug</h1>
+<EditForm Model="@_input" OnValidSubmit="@Submit">
+<CustomValidation @ref="customValidation" />
+  <ValidationSummary />
+<div class="form-field">
+  <label>Project:</label>
+  <div>
+    <InputSelect @bind-Value="_input!.Project">
+      <option value="">Select Project ...</option>
+      <option value="1">Project1</option>
+      <option value="2">Project2</option>
+      <option value="3">Project3</option>
+      <option value="4">Project4</option>
+      <option value="5">Project5</option>
+    </InputSelect>
+  </div>
+</div>
+
+<div class="form-field">
+  <label>User:</label>
+  
+  <div>
+    <InputSelect @bind-Value="_input!.User">
+      <option value="">Select User ...</option>
+        <option value="1">AAA	New A</option>
+        <option value="2">BBB	New B</option>
+        <option value="3">CCC	New C</option>
+        <option value="4">DDD	New D</option>
+        <option value="5">EEE	New E</option>
+    </InputSelect>
+  </div>
+</div>
+
+<div class="form-field">
+  <label>Description:</label>
+  <div>
+    <InputTextArea @bind-Value="_input.Description" />
+  </div>
+</div>
+
+  <button class="btn btn-info" type="submit">
+  Add
+</button>
+</EditForm>
+@code {
+  private const string url = "http://localhost:5185/";
+  private CustomValidation? customValidation;
+  private BugInput _input;
+  protected override void OnInitialized() =>
+        _input ??= new BugInput();
+  private async Task Submit()
+  {
+    customValidation?.ClearErrors();
+
+    var errors = new Dictionary<string, List<string>>();
+
+    if (_input.Project <=  0)
+    {
+      errors.Add(nameof(_input.Project),
+          new() { "For a 'Bug', " +
+                "'Select least one project." });
+    }
+    if (_input.User <= 0)
+    {
+      errors.Add(nameof(_input.User),
+          new() { "For a 'Bug', " +
+                "'Select least one user." });
+    }
+    if (errors.Any())
+    {
+      customValidation?.DisplayErrors(errors);
+    }
+    else
+    {
+      try
+      {
+        await Http.PostAsJsonAsync(url + "bug", _input);        
+      }
+      catch (Exception ex)
+      {
+        Logger.LogInformation(ex, "Failed to created a bug {_input}", _input);
+      }
+      NavManager.NavigateTo("fetchdata");
+    }
+  }
+}
